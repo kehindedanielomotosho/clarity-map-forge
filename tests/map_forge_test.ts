@@ -32,44 +32,26 @@ Clarinet.test({
 });
 
 Clarinet.test({
-  name: "Can purchase and access itinerary",
+  name: "Cannot create itinerary with empty locations",
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get('deployer')!;
-    const buyer = accounts.get('wallet_1')!;
     
-    // First create an itinerary
     let block = chain.mineBlock([
       Tx.contractCall('map_forge', 'create-itinerary', [
-        types.ascii("Test Itinerary"),
-        types.utf8("Test Description"),
+        types.ascii("Test"),
+        types.utf8("Test desc"),
         types.uint(100),
-        types.list([types.utf8("Location 1")]),
+        types.list([]),
         types.utf8("Details")
       ], deployer.address)
     ]);
 
-    // Then purchase it
-    let purchaseBlock = chain.mineBlock([
-      Tx.contractCall('map_forge', 'purchase-itinerary', [
-        types.uint(0)
-      ], buyer.address)
-    ]);
-
-    purchaseBlock.receipts[0].result.expectOk().expectBool(true);
-
-    // Verify content access
-    let contentBlock = chain.mineBlock([
-      Tx.contractCall('map_forge', 'get-itinerary-content', [
-        types.uint(0)
-      ], buyer.address)
-    ]);
-
-    contentBlock.receipts[0].result.expectSome();
+    block.receipts[0].result.expectErr().expectUint(104);
   },
 });
 
 Clarinet.test({
-  name: "Can rate purchased itinerary",
+  name: "Cannot rate with invalid rating value",
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get('deployer')!;
     const buyer = accounts.get('wallet_1')!;
@@ -88,15 +70,15 @@ Clarinet.test({
       ], buyer.address)
     ]);
 
-    // Submit rating
+    // Try invalid rating
     let ratingBlock = chain.mineBlock([
       Tx.contractCall('map_forge', 'rate-itinerary', [
         types.uint(0),
-        types.uint(5),
+        types.uint(6),
         types.utf8("Great itinerary!")
       ], buyer.address)
     ]);
 
-    ratingBlock.receipts[0].result.expectOk().expectBool(true);
+    ratingBlock.receipts[0].result.expectErr().expectUint(105);
   },
 });
