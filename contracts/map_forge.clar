@@ -7,6 +7,7 @@
 (define-constant err-not-found (err u102))
 (define-constant err-unauthorized (err u103))
 (define-constant err-invalid-price (err u104))
+(define-constant err-invalid-rating (err u105))
 
 ;; Data Variables
 (define-data-var next-itinerary-id uint u0)
@@ -47,6 +48,11 @@
     { rating: uint, review: (string-utf8 500) }
 )
 
+;; Private Functions
+(define-private (validate-rating (rating uint))
+    (and (>= rating u1) (<= rating u5))
+)
+
 ;; Public Functions
 
 ;; Create new itinerary
@@ -56,6 +62,7 @@
                                 (locations (list 20 (string-utf8 100)))
                                 (details (string-utf8 2000)))
     (let ((itinerary-id (var-get next-itinerary-id)))
+        (asserts! (> (len locations) u0) (err err-invalid-price))
         (map-insert itineraries 
             itinerary-id
             {
@@ -85,6 +92,7 @@
         (itinerary (unwrap! (map-get? itineraries itinerary-id) (err err-not-found)))
         (price (get price itinerary))
     )
+        (asserts! (get active itinerary) (err err-unauthorized))
         (if (is-eq price u0)
             (begin
                 (map-set itinerary-purchases 
@@ -114,6 +122,7 @@
     (let (
         (purchase-record (unwrap! (map-get? itinerary-purchases { itinerary-id: itinerary-id, user: tx-sender }) (err err-unauthorized)))
     )
+        (asserts! (validate-rating rating) (err err-invalid-rating))
         (if (get purchased purchase-record)
             (begin
                 (map-set itinerary-ratings
